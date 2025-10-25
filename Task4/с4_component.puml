@@ -1,0 +1,47 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+LAYOUT_TOP_DOWN()
+
+Person_Ext(partnerAgent, "Менеджер партнерского кол-центра")
+Person(creditMan, "Сотрудники отдела кредитования")
+Person(support, "Сотрудник второй линии поддержки")
+
+Container_Boundary(cc, "ИС кол-центра (внутр.)") {
+  Component(ccUi, "Call Center UI", "React", "Экран «Депозиты»")
+  Component(ccSvc, "Call Center Service", "Java", "Клиент REST ставок")
+}
+ContainerDb(db, "Rates Store", "MS SQL", "Нормализованные ставки + версии")
+
+Container(ratesUI, "Rates Uploader", "ReactJS", "Минималистичное Web-приложение для загрузки excel-файла со ставками.")
+
+Container_Boundary(rates, "Rates Publisher", "App", "Публикация ставок") {
+    Component(ing, "XLS Ingestor", "Module", "Импорт/валидация XLS/XLSX")
+    Component(val, "Validator", "Module", "Правила, диапазоны, дубли")
+    Component(norm, "Normalizer", "Module", "Парсинг, мэппинг в таблицы")
+    Component(api, "Rates API", "Module", "POST, GET /rates, кэш")
+    Component(exp, "File Exporter", "Module", "CSV/XLSX + .sig + .sha256")
+    Component(jobApi, "File Exporter API", "Module", "Ручной ретрай рассылки")
+    Component(job, "Scheduler", "Module", "Плановые/внеплановые рассылки")
+    Component(sec, "Security", "Module", "Auth2.0, журналы, аудит")
+    Component(cache, "Cache", "Module", "In-memory/Redis")
+}
+Rel(creditMan, ratesUI, "Загрузка excel-файла со ставками в заданном формате", "HTTPS/OAuth 2.0")
+
+Rel(ratesUI, api, "POST /rates", "HTTPS/OAuth 2.0")
+Rel(api, ing, "Загрузка excel-файла со ставками в заданном формате")
+Rel(ing, val, "Валидация")
+Rel(val, norm, "Очистка/нормализация")
+Rel(norm, db, "INSERT/UPSERT")
+Rel(api, cache, "Чтение/инвалидация")
+Rel(api, db, "SELECT")
+Rel(ccSvc, api, " GET /rates", "HTTPS/OAuth 2.0")
+Rel(exp, db, "Чтение активной версии")
+Rel(support, jobApi, "Ручной запуск рассылки ставок сотрудникам партнерского кол-центра")
+Rel(jobApi, exp, "Генерация и отправка")
+Rel(job, exp, "Генерация и отправка")
+Rel(exp, partnerAgent, "Письмо c excel файлом", "Email")
+Rel(api, sec, "JWT/OAuth2")
+Rel(exp, sec, "Подпись/PGP")
+
+
+@enduml

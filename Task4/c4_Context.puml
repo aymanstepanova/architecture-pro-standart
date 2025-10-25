@@ -1,0 +1,41 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+LAYOUT_TOP_DOWN()
+
+Person(client, "Клиент")
+Person(callAgent, "Менеджер кол-центра (внутр.)")
+Person(partnerAgent, "Менеджер партнерского кол-центра")
+Person(support, "Сотрудник второй линии поддержки")
+Person(creditMan, "Сотрудники отдела кредитования")
+
+System_Boundary(bank, "Банк «Стандарт»") {
+  System(ib, "Интернет-банк", "Просмотр вкладов, заявки")
+  System(site, "Сайт", "Просмотр вкладов, заявки")
+  System_Ext(sms, "СМС-шлюз", "OTP и уведомления")
+    System(callcenter, "Система кол-центра", "Обработка лидов, особые условия")
+
+  System_Boundary(callcenter, "Система кол-центра (внутр.)") {
+    System(ccIS, "Система кол-центра ", "Java/React")
+  }
+  System(rates, "Rates Publisher", "Импорт XLS → REST + файлы")
+  System(abs, "АБС", "Delphi/PLSQL")
+}
+System_Ext(telecom, "Телеком-оператор","Доставка СМС")
+
+System_Ext(ccPartner, "Система партнерского кол-центра", "Внешняя ИС, без API")
+
+Rel(client, site, "Просмотр/заявка", "HTTPS")
+Rel(sms, telecom, "Доставка СМС")
+Rel(client, ib, "Просмотр/заявка", "HTTPS + SMS OTP")
+Rel(callAgent, ccIS, "Консультирование клиентов")
+Rel(creditMan, rates, "Загрузка excel-файла со ставками в заданном формате", "HTTPS")
+Rel(ccIS, rates, "GET /rates (только чтение)", "HTTPS")
+Rel(rates, partnerAgent, "Файлы CSV/XLSX по почте (TLS) + подпись/хеш")
+Rel(rates, abs, "Нет прямых онлайн-вызовов", "Ограничение")
+Rel(rates, sms, "Уведомления об инцидентах (опц.)")
+Rel(support, rates, "Перезапуск отправки ставок вручную (авторизованный доступ, без ПДн)")
+Rel(client, partnerAgent, "Звонок с запросом актуальной ставки")
+Rel(client, callAgent, "Звонок с запросом актуальной ставки")
+Rel(partnerAgent, ccPartner, "работает в своей системе")
+
+@enduml
