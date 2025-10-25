@@ -2,36 +2,34 @@
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
 LAYOUT_TOP_DOWN()
 
-Person(client, "Клиент")
-Person(callAgent, "Менеджер кол-центра (внутр.)")
-Person(partnerAgent, "Менеджер партнерского кол-центра")
-Person(support, "Сотрудник второй линии поддержки")
-Person(creditMan, "Сотрудники отдела кредитования")
+Person_Ext(client, "Клиент")
+Person_Ext(partnerAgent, "Менеджер партнерского call-центра")
+System_Ext(ccPartner, "Система партнерского call-центра", "Внешняя ИС, без API")
+System_Ext(mailGw, "Почтовый шлюз", "SMTP/TLS, DLP")
 
-System_Boundary(bank, "Банк «Стандарт»") {
-  System_Ext(sms, "СМС-шлюз", "OTP и уведомления")
-    System(callcenter, "Система кол-центра", "Обработка лидов, особые условия")
-
-  System_Boundary(callcenter, "Система кол-центра (внутр.)") {
-    System(ccIS, "Система кол-центра ", "Java/React")
-  }
-  System(rates, "Rates Publisher", "Импорт XLS → REST + файлы")
-  System(abs, "АБС", "Delphi/PLSQL")
+Boundary(bank, "Банк «Стандарт»") {
+    Person(callAgent, "Менеджер call-центра")
+    Person(support, "Сотрудник второй линии поддержки")
+    Person(creditMan, "Сотрудник бэк-офиса", "Загружает Excel со ставками депозитов")
+    System(callcenter, "Система call-центра", "Карточка клиента, особые условия")
+    System(rates, "Rates Publisher", "Импорт XLS → REST + файлы")
+    System(site, "Сайт банка")
+    System(digitalBank, "Интернет-банк")
 }
-System_Ext(telecom, "Телеком-оператор","Доставка СМС")
 
-System_Ext(ccPartner, "Система партнерского кол-центра", "Внешняя ИС, без API")
-
-Rel(sms, telecom, "Доставка СМС")
-Rel(callAgent, ccIS, "Консультирование клиентов")
-Rel(creditMan, rates, "Загрузка excel-файла со ставками в заданном формате", "HTTPS")
-Rel(ccIS, rates, "GET /rates (только чтение)", "HTTPS")
-Rel(rates, partnerAgent, "Файлы CSV/XLSX по почте (TLS) + подпись/хеш")
-Rel(rates, abs, "Нет прямых онлайн-вызовов", "Ограничение")
-Rel(rates, sms, "Уведомления об инцидентах (опц.)")
-Rel(support, rates, "Перезапуск отправки ставок вручную (авторизованный доступ, без ПДн)")
+Rel(client, site, "Просмотр актуальных ставок по депозиту")
+Rel(client, digitalBank,  "Просмотр актуальных ставок по депозиту")
 Rel(client, partnerAgent, "Звонок с запросом актуальной ставки")
 Rel(client, callAgent, "Звонок с запросом актуальной ставки")
+Rel(site, rates, "GET /rates", "HTTPS")
+Rel(digitalBank, rates, "GET /rates", "HTTPS")
+
+Rel(callAgent, callcenter, "Просмотр данных для консультирования клиентов")
+Rel(creditMan, rates, "Загрузка excel-файла со ставками в заданном формате", "HTTPS")
+Rel(callcenter, rates, "GET /rates", "HTTPS")
+Rel(rates, mailGw, "Файлы CSV/XLSX по почте (TLS) + подпись/хеш")
+Rel(mailGw, partnerAgent, "Почтовая доставка", "TLS")
+Rel(support, rates, "Переотправка/ручной запуск", "HTTPS (Auth)")
 Rel(partnerAgent, ccPartner, "работает в своей системе")
 
 @enduml

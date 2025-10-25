@@ -11,8 +11,8 @@ System_Boundary(bank, "Банк «Стандарт»") {
   Container(depSvc, "Deposit Application Service", "Java Spring Boot", "Приём заявок интернет-банка, статусы, уведомления")
   ContainerDb(depDb, "Deposits DB", "MS SQL/Oracle", "Заявки на депозиты, статусы, журнал событий")
 
-  Container(cc, "Система кол-центра", "React + Spring Boot", "Обработка лидов")
-  ContainerDb(ccdb, "База данных кол-центра", "PostgreSQL", "Лиды/коммуникации")
+  Container(cc, "Система call-центра", "React + Spring Boot", "Обработка лидов")
+  ContainerDb(ccdb, "База данных call-центра", "PostgreSQL", "Лиды/коммуникации")
 
   Container(sms, "СМС-шлюз", "", "OTP, уведомления")
   Container_Ext(xls, "XLS ставки", "", "Временный источник ставок")
