@@ -9,8 +9,6 @@ Person(support, "Сотрудник второй линии поддержки")
 Person(creditMan, "Сотрудники отдела кредитования")
 
 System_Boundary(bank, "Банк «Стандарт»") {
-  System(ib, "Интернет-банк", "Просмотр вкладов, заявки")
-  System(site, "Сайт", "Просмотр вкладов, заявки")
   System_Ext(sms, "СМС-шлюз", "OTP и уведомления")
     System(callcenter, "Система кол-центра", "Обработка лидов, особые условия")
 
@@ -24,9 +22,7 @@ System_Ext(telecom, "Телеком-оператор","Доставка СМС")
 
 System_Ext(ccPartner, "Система партнерского кол-центра", "Внешняя ИС, без API")
 
-Rel(client, site, "Просмотр/заявка", "HTTPS")
 Rel(sms, telecom, "Доставка СМС")
-Rel(client, ib, "Просмотр/заявка", "HTTPS + SMS OTP")
 Rel(callAgent, ccIS, "Консультирование клиентов")
 Rel(creditMan, rates, "Загрузка excel-файла со ставками в заданном формате", "HTTPS")
 Rel(ccIS, rates, "GET /rates (только чтение)", "HTTPS")

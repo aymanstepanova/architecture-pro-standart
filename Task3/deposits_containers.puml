@@ -1,5 +1,5 @@
 @startuml deposits_containers
-!include ./C4_Container.puml
+!include ../styles/C4_Container.puml
 LAYOUT_WITH_LEGEND()
 
 Person(customer, "Клиент")

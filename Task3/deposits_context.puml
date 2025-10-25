@@ -1,5 +1,5 @@
 @startuml deposits_context
-!include ./C4_Context.puml
+!include ../styles/C4_Context.puml
 LAYOUT_WITH_LEGEND()
 
 Person(customer, "Клиент")
