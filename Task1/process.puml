@@ -40,10 +40,4 @@ Rel(queue, scoring, "Онлайн-запрос скоринга", "API (sync)")
 Rel(scoring, bki, "Онлайн-запросы БКИ", "API (sync)")
 Rel(queue, abs, "Решение по заявке раз в сутки", "Интеграция по БД (batch, daily)")
 
-' Ответственности
-UpdateRelStyle(abs, sms, $textColor="black", $lineColor="#888888", $offsetX=0, $offsetY=0)
-UpdateRelStyle(abs, queue, $textColor="black", $lineColor="#888888")
-UpdateRelStyle(queue, abs, $textColor="black", $lineColor="#888888")
-UpdateRelStyle(bo, mail, $lineColor="#cc8844")
-UpdateRelStyle(credit, mail, $lineColor="#cc8844")
 @enduml
