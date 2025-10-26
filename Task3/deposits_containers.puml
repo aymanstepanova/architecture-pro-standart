@@ -4,7 +4,7 @@ LAYOUT_WITH_LEGEND()
 
 Person(customer, "Клиент")
 
-System_Boundary(bank, "Банк «Стандарт»") {
+Boundary(bank, "Банк «Стандарт»") {
   Container(ib, "Интернет-банк", "ASP.NET MVC 4.5", "Монолит + модуль Deposits UI/Flow")
   ContainerDb(ibdb, "База данных Интернет-банка", "MS SQL", "Данные клиентов/сессий/логов")
 

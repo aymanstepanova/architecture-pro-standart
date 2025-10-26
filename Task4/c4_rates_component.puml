@@ -16,20 +16,20 @@ ContainerDb_Ext(db, "Rates Store", "MS SQL", "Нормализованные с�
 Container(ratesUI, "Rates Publisher UI", "ReactJS", "Минималистичное Web-приложение для загрузки excel-файла со ставками.")
 
 Container_Boundary(rates, "Rates Publisher", "App", "Публикация ставок") {
-    Component(api, "Rates API", "Module", "POST, GET /rates, кэш")
+    Component(api, "Rates API", "RestController", "POST, GET /rates, кэш")
     ' Загрузка excel
-    Component(ratesService, "RatesUploaderService", "Bean", "Бизнес-логика импорта excel-файла")
-    Component(val, "Validator", "Module", "Правила, диапазоны, дубли")
-    Component(norm, "Normalizer", "Module", "Парсинг, мэппинг в таблицы")
-    Component(ratesRepo, "RatesRepository", "Bean", "Слой БД")
+    Component(ratesService, "RatesUploaderService", "Service", "Бизнес-логика импорта excel-файла")
+    Component(val, "Validator", "Component", "Правила, диапазоны, дубли")
+    Component(norm, "Normalizer", "Component", "Парсинг, мэппинг в таблицы")
+    Component(ratesRepo, "RatesRepository", "Repository", "Слой БД")
 
     ' Чтение ставок
-    Component(cache, "Cache", "Module", "In-memory/Redis")
-    Component(sec, "Security", "Module", "Auth2.0, журналы, аудит")
+    Component(cache, "Cache", "Repository", "In-memory/Redis")
+    Component(sec, "Security", "Component", "Auth2.0, журналы, аудит")
 
     ' Рассылка ставок
-    Component(jobApi, "File Exporter API", "Module", "Ручной ретрай рассылки")
-    Component(job, "Scheduler", "Module", "Плановые/внеплановые рассылки")
+    Component(jobApi, "File Exporter API", "Service", "Ручной ретрай рассылки")
+    Component(job, "Scheduler", "Cron", "Плановые/внеплановые рассылки")
     Component(exp, "File Exporter", "Module", "CSV/XLSX + .sig + .sha256")
     Component(sender, "File Sender", "Bean", "Генерация и отправка файла на почту")
 

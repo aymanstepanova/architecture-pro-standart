@@ -2,10 +2,10 @@
 !include ../styles/C4_Context.puml
 LAYOUT_WITH_LEGEND()
 
-Person(customer, "Клиент")
+Person_Ext(customer, "Клиент")
 Person(agent, "Менеджер кол-центра")
 
-System_Boundary(bank, "Банк «Стандарт»") {
+Boundary(bank, "Банк «Стандарт»") {
   System(site, "Сайт", "Подача заявки новым клиентом")
   System(ib, "Интернет-банк", "Заявка на депозит, персонализированные ставки, OTP")
   System(callcenter, "Система кол-центра", "Обработка лидов, особые условия")
