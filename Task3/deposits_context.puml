@@ -1,0 +1,32 @@
+@startuml deposits_context
+!include ../styles/C4_Context.puml
+LAYOUT_WITH_LEGEND()
+
+Person_Ext(customer, "Клиент")
+Person(agent, "Менеджер кол-центра")
+
+Boundary(bank, "Банк «Стандарт»") {
+  System(site, "Сайт", "Подача заявки новым клиентом")
+  System(ib, "Интернет-банк", "Заявка на депозит, персонализированные ставки, OTP")
+  System(callcenter, "Система кол-центра", "Обработка лидов, особые условия")
+  System(sms, "СМС-шлюз телеком оператора", "OTP и уведомления")
+  System(abs, "АБС", "Ручное оформление депозита (MVP)")
+  System(depSvc, "Deposit Application Service",  "Заявки IB, статусы, интеграция/развязка с АБС")
+  System_Ext(xls, "XLS ставки", "Файл ставок (временный источник)")
+
+}
+
+System_Ext(telco, "Телеком-оператор","Доставка СМС")
+
+
+Rel(customer, site, "Оставляет заявку (ФИО, телефон)")
+Rel(customer, ib, "Подаёт заявку на депозит, подтверждает OTP")
+Rel(site, callcenter, "Передача лида")
+Rel(ib, depSvc, "Создание/чтение заявок", "HTTPS")
+Rel(depSvc, sms, "OTP/уведомления", "HTTPS/SMPP")
+Rel(sms, telco, "Доставка СМС")
+Rel(agent, callcenter, "Обзвон, особые условия")
+Rel(depSvc, abs, "Передача сведений/статусов (без нагрузки на БД АБС)", "интеграционный слой")
+Rel(depSvc, xls, "Чтение ставок", "файловый доступ/API")
+
+@enduml

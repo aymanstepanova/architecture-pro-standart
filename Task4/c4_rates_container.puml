@@ -1,0 +1,38 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+LAYOUT_TOP_DOWN()
+
+Person_Ext(client, "Клиент банка")
+Person_Ext(partnerAgent, "Сотрудник партнерского call-центра")
+Person(innerAgent, "Сотрудник call-центра ")
+Person(creditMan, "Сотрудник отдела кредитования")
+Person(support, "Сотрудник второй линии поддержки")
+
+Container(cc, "Система call-центра")
+
+System_Boundary("ratePublisher", "Rates Publisher") {
+    Container(ratesUI, "Rates Publisher UI", "ReactJS", "Минималистичное Web-приложение для загрузки excel-файла со ставками.")
+    ContainerDb(db, "Rates Store", "MS SQL", "Нормализованные ставки + версии")
+    Container(rates, "Rates Publisher", "Java/Spring Boot", "Публикация ставок")
+}
+
+Rel(client, innerAgent, "Звонок в call-центр")
+Rel(client, partnerAgent, "Звонок в партнерский call-центр (переадресация)")
+
+' Загрузка файла
+Rel(creditMan, ratesUI, "Загрузка excel-файла со ставками в заданном формате", "HTTPS/OAuth 2.0")
+Rel(ratesUI, rates, "POST /rates", "HTTPS/OAuth 2.0")
+Rel(rates, db, "SELECT/UPSERT")
+Rel(rates, partnerAgent, "Письмо c excel файлом", "Email")
+
+' Чтение
+Rel(innerAgent, cc, "Просмотр актуальных банковских ставок")
+Rel(cc, rates, "GET /rates", "HTTPS/OAuth 2.0")
+
+' Ручной запуск рассылки
+Rel(support, ratesUI, "Ручной запуск рассылки ставок сотрудникам партнерского call-центра", "HTTPS/OAuth 2.0")
+Rel(ratesUI, rates, "POST /commands/resend", "HTTPS/OAuth 2.0")
+
+
+
+@enduml
