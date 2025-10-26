@@ -1,0 +1,28 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+LAYOUT_TOP_DOWN()
+
+Person_Ext(client, "Клиент", "Подаёт заявку на кредит")
+System_Ext(bki, "БКИ", "Бюро кредитных историй")
+
+Boundary(bank, "Банк «Стандарт»") {
+  System(cas, "Credit Application Service", "Приём заявок, скоринг, уведомления")
+  System_Ext(conveyor, "Кредитный конвейер", "Обработка и одобрение заявок")
+  System_Ext(scoring, "Скоринг", "Расчёт кредитного рейтинга (высоконагружен)")
+  System_Ext(abs, "АБС", "Финансовое оформление кредита")
+  System_Ext(site, "Сайт", "Форма заявки для новых клиентов")
+  System_Ext(ib, "Интернет-банк", "Для действующих клиентов с OTP")
+  System_Ext(sms, "СМС-шлюз", "Отправка уведомлений и кодов")
+}
+
+Rel(client, site, "Подача заявки", "HTTPS/TLS")
+Rel(client, ib, "Подача заявки", "HTTPS/TLS")
+Rel(site, cas, "POST /applications", "REST")
+Rel(ib, cas, "POST /applications", "REST")
+Rel(cas, conveyor, "Заявки на обработку", "Batch (ежесуточно)")
+Rel(cas, scoring, "Онлайн-скоринг", "API")
+Rel(conveyor, abs, "Статусы заявок", "Batch (ежесуточно)")
+Rel(abs, cas, "Статусы заявок", "Batch (ежесуточно)")
+Rel(cas, sms, "СМС-уведомления", "API")
+Rel(cas, bki, "Запрос кредитной истории", "API")
+@enduml

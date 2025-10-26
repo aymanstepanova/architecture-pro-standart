@@ -1,0 +1,31 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+LAYOUT_TOP_DOWN()
+
+Container_Boundary(cas, "Credit Application Service") {
+  Component(api, "Applications API", "REST/HTTPS", "Приём/чтение заявок, OTP-взаимодействие через интернет-банк")
+  Component(flow, "Workflow/Decisioning", "Service", "Оркестрация шагов, правила принятия решения")
+  Component(adapterScore, "Scoring Adapter", "Client", "Интеграция с конвейером")
+  Component(adapterAbs, "ABS Adapter", "Repository", "Пакетная выгрузка DB, приём статусов")
+  Component(notify, "Notifications", "Service", "СМС/пуш")
+  Component(audit, "Audit & Trace", "Service", "Логи действий и трассировка")
+  Component(batchGw, "Batch Gateway", "Service", "пакетная выгрузка/загрузка, идемпотентность, ретраи, аудит")
+  Component(scheduler, "Scheduler", "Quartz/Cron", "Ночные/регламентные задания")
+}
+ContainerDb(db, "Applications DB", "MS SQL", "Заявки, статусы, решения")
+ContainerDb_Ext(absdb, "Applications DB", "MS SQL", "Заявки, статусы, решения")
+System_Ext(sms, "СМС-шлюз", "Отправка уведомлений и кодов")
+
+Rel(api, flow, "Создать/обновить заявку")
+Rel(flow, adapterScore, "Запрос скоринга/решения")
+Rel(flow, notify, "Отправка уведомлений")
+Rel(notify, sms, "Отправка уведомлений")
+Rel(flow, db, "CRUD заявки/статусы")
+Rel(flow, db, "Сохранение решений")
+Rel(audit, db, "Сохранение логов аудита")
+Rel(flow, batchGw, "Формирование пакета заявок/получение статусов")
+Rel(scheduler, batchGw, "Запуск по расписанию")
+Rel(batchGw, adapterAbs, "Отправка пакета заявок")
+Rel(adapterAbs, absdb, "Отправка пакета заявок")
+
+@enduml
