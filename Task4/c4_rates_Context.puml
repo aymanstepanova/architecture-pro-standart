@@ -14,7 +14,7 @@ Boundary(bank, "Банк «Стандарт»") {
     System(callcenter, "Система call-центра", "Карточка клиента, особые условия")
     System(rates, "Rates Publisher", "Импорт XLS → REST + файлы")
     System(site, "Сайт банка")
-    System(digitalBank, "Интернет-банк")
+    System(digitalBank, "Интернет-банк (через Deposit Application Service)")
 }
 
 Rel(client, site, "Просмотр актуальных ставок по депозиту")
