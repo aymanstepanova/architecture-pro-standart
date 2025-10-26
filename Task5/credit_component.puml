@@ -3,29 +3,54 @@
 LAYOUT_TOP_DOWN()
 
 Container_Boundary(cas, "Credit Application Service") {
-  Component(api, "Applications API", "REST/HTTPS", "Приём/чтение заявок, OTP-взаимодействие через интернет-банк")
-  Component(flow, "Workflow/Decisioning", "Service", "Оркестрация шагов, правила принятия решения")
-  Component(adapterScore, "Scoring Adapter", "Client", "Интеграция с конвейером")
-  Component(adapterAbs, "ABS Adapter", "Repository", "Пакетная выгрузка DB, приём статусов")
-  Component(notify, "Notifications", "Service", "СМС/пуш")
-  Component(audit, "Audit & Trace", "Service", "Логи действий и трассировка")
-  Component(batchGw, "Batch Gateway", "Service", "пакетная выгрузка/загрузка, идемпотентность, ретраи, аудит")
-  Component(scheduler, "Scheduler", "Quartz/Cron", "Ночные/регламентные задания")
+  Component(api, "Applications API", "RestController", "Приём/чтение заявок; статусы для ИБ/сайта")
+  Component(auth, "OTP/Auth", "Service", "Подтверждение действий")
+  Component(flow, "WorkflowProcessor", "Service", "Оркестрация подачи заявки/статусов")
+  Component(scoreAdapter, "Scoring Adapter", "Connector", "Онлайн-интеграция со скорингом")
+  Component(statusConsumer, "Status Events Consumer", "Kafka Consumer", "Подписка на loan.status.changed из Конвейера")
+  Component(notifier, "Notifier", "Service", "СМС-уведомления клиенту")
+  Component(batchGw, "Batch Gateway", "Service", "Пакетный обмен с Конвейером/АБС 1р/сутки")
+  Component(scheduler, "Job Scheduler", "Quartz/Cron", "Запуск ночных заданий актуализации статусов")
+  Component(audit, "Audit & Trace", "Service", "Аудит/трассировка операций")
 }
-ContainerDb(db, "Applications DB", "MS SQL", "Заявки, статусы, решения")
-ContainerDb_Ext(absdb, "Applications DB", "MS SQL", "Заявки, статусы, решения")
-System_Ext(sms, "СМС-шлюз", "Отправка уведомлений и кодов")
 
-Rel(api, flow, "Создать/обновить заявку")
-Rel(flow, adapterScore, "Запрос скоринга/решения")
-Rel(flow, notify, "Отправка уведомлений")
-Rel(notify, sms, "Отправка уведомлений")
-Rel(flow, db, "CRUD заявки/статусы")
-Rel(flow, db, "Сохранение решений")
-Rel(audit, db, "Сохранение логов аудита")
-Rel(flow, batchGw, "Формирование пакета заявок/получение статусов")
+ContainerDb(db, "Applications DB", "MS SQL (RDBMS)", "Заявки, статусы, решения")
+
+' Внешние системы/контейнеры
+System_Ext(kafka, "Event Streaming (Kafka)", "loan.status.changed")
+System_Ext(scoring, "Скоринг", "API для определения возможности выдачи кредита. 24/7 (онлайн)")
+System_Ext(sms, "СМС-шлюз", "Уведомления/OTP")
+System_Ext(conveyor, "Кредитный конвейер", "Обработка/решения")
+System_Ext(bki, "БКИ", "Кредитные истории")
+Container_Ext(site, "Сайт", "Форма заявки для новых клиентов")
+Container_Ext(ib, "Интернет-банк", "Для действующих клиентов с OTP")
+
+Rel(site, api, "POST /applications", "REST/HTTPS")
+Rel(ib, api, "POST /applications", "REST/HTTPS")
+
+' Потоки внутри CAS
+Rel(api, auth, "OTP/валидация")
+Rel(api, flow, "Создание/обновление заявки")
+Rel(flow, scoreAdapter, "Вызов скоринга (онлайн)")
+Rel(flow, batchGw, "Сформировать/прочесть пакетные данные")
 Rel(scheduler, batchGw, "Запуск по расписанию")
-Rel(batchGw, adapterAbs, "Отправка пакета заявок")
-Rel(adapterAbs, absdb, "Отправка пакета заявок")
+Rel(flow, notifier, "Отправить СМС")
+Rel(flow, audit, "Запись аудита")
+Rel(api, db, "CRUD заявки/статусы")
+Rel(flow, db, "Сохранение решений и статусов")
+
+' Асинхронные статусы из Конвейера
+Rel(kafka, statusConsumer, "loan.status.changed", "Kafka (async)")
+Rel(statusConsumer, flow, "Применить новый статус")
+Rel(statusConsumer, db, "Обновить статус заявки")
+
+' Внешние интеграции
+Rel(scoreAdapter, scoring, "Предварительный расчет", "HTTPS")
+Rel(notifier, sms, "Отправить СМС", "HTTPS")
+Rel(auth, sms, "Отправить СМС с одноразовым паролем для подтверждения", "HTTPS")
+Rel(batchGw, conveyor, "Запрос статусов пачкой", "Batch")
+Rel(conveyor, bki, "Запрос кредитной истории", "HTTPS")
+Rel(scoring, bki, "Запрос кредитной истории", "HTTPS")
+Rel(scoreAdapter, conveyor, "Создание заявки для предодобренных", "HTTPS")
 
 @enduml
