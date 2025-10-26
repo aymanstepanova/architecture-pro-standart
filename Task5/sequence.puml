@@ -1,47 +1,50 @@
 @startuml
-title Процесс обработки заявки на кредит (MVP)
+title Процесс подачи и обработки кредитной заявки (MVP + Target)
 
 actor Клиент as Client
-participant "Сайт / Интернет-банк" as Front
+participant "Сайт" as Web
+participant "Интернет-банк" as IB
 participant "CAS\n(Credit Application Service)" as CAS
 participant "Скоринг" as Scoring
 participant "Кредитный конвейер" as Conveyor
 participant "АБС" as ABS
+participant "Kafka" as Kafka
 participant "СМС-шлюз" as SMS
 
-== Подача заявки ==
-Client -> Front : Заполняет форму заявки (ФИО, паспорт, сумма)
-Front -> CAS : POST /applications (HTTPS)
-CAS -> Scoring : Запрос предварительного скоринга (API)
-Scoring --> CAS : Оценка / предварительное решение
-CAS -> Client : Отображает "Предварительное решение" или "Отказ"
-CAS -> SMS : Отправить СМС о получении заявки
-SMS --> Client : СМС: "Заявка получена, ожидайте решение"
+== Сценарий 1: Новый клиент (через сайт) ==
+Client -> Web : Заполняет заявку (ФИО, паспорт, сумма)
+Web -> CAS : POST /applications (submit)
+note right of CAS
+  CAS вызывает скоринг **только при фактической подаче**
+  и при наличии паспортных данных (P3)
+end note
+CAS -> Scoring : Онлайн-скоринг (API, on submit only)
+Scoring --> CAS : Результат оценки
+CAS -> Client : Показывает предварительное решение
+CAS -> SMS : СМС: "Заявка получена, ожидайте"
+SMS --> Client : СМС-уведомление
 
-== Пакетный обмен (раз в сутки) ==
-CAS -> Conveyor : Передаёт заявки для рассмотрения\n(Batch, 1×/сутки)
-Conveyor -> Scoring : Запрос скоринга для каждой заявки (онлайн)
-Scoring --> Conveyor : Результаты скоринга (оценка риска)
-Conveyor -> Conveyor : Принятие решения сотрудником / системой
-Conveyor -> ABS : Передаёт результаты рассмотрения\n(одобрено / отказ, Batch 1×/сутки)
-ABS -> ABS : Обработка одобренных заявок, создание договоров, проводки
+== Сценарий 2: Предодобренный клиент (через интернет-банк) ==
+Client -> IB : Выбирает предодобренный кредит
+IB -> CAS : POST /applications (submit)
+CAS -> Conveyor : Отправка заявки (REST / Batch)
+note right of Conveyor
+  Скоринг вызывается **только Конвейером**, не CAS.
+  CAS не выполняет предрасчёты.
+end note
+Conveyor -> Scoring : Онлайн-скоринг (API, 24/7)
+Scoring --> Conveyor : Результат оценки
+Conveyor -> Kafka : loan.status.changed (async event)
+Kafka --> CAS : Событие об изменении статуса
+CAS -> SMS : Отправить уведомление клиенту
+SMS --> Client : СМС о статусе ("Одобрено / Отказ")
 
-== Рассылка статусов ==
-ABS --> Conveyor : Подтверждение обработки (Batch)
-Conveyor --> CAS : Возврат статусов заявок (Batch, 1×/сутки)
-CAS -> CAS : Обновление статусов в БД
-CAS -> SMS : Отправка уведомлений клиентам
-alt Одобрено
-  SMS --> Client : "Заявка одобрена, приходите на идентификацию"
-else Отказ
-  SMS --> Client : "К сожалению, заявка отклонена"
-end
-
-== Завершение процесса ==
-Client -> ABS : Приходит в отделение для идентификации (KYC)
-ABS -> ABS : Проверка личности и зачисление кредита
-ABS --> CAS : (опционально) Финальный статус "Выдача завершена" (Batch)
-CAS -> SMS : СМС клиенту о зачислении средств
-SMS --> Client : "Кредит зачислен на счёт"
+== Ежесуточный обмен с АБС ==
+Conveyor -> ABS : Одобренные заявки (Batch 1×/сутки)
+ABS -> ABS : Проведение договоров, зачисление средств
+ABS --> Conveyor : Финальные статусы ("Выдано / Отказ")
+Conveyor -> CAS : Финальные статусы (Batch 1×/сутки)
+CAS -> SMS : СМС клиенту ("Средства зачислены")
+SMS --> Client : Финальное уведомление
 
 @enduml
