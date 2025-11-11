@@ -1,0 +1,64 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+LAYOUT_TOP_DOWN()
+
+Person_Ext(partnerAgent, "Менеджер партнерского call-центра")
+Person(creditMan, "Сотрудник бэк-офиса кредитования")
+Person(support, "Сотрудник второй линии поддержки")
+Person(callAgent, "Менеджер call-центра (внутр.)")
+
+Container_Boundary(cc, "Система call-центра (внутр.)") {
+  Component(ccUi, "Call Center UI", "React", "Экран «Депозиты»")
+  Component(ccApi, "Call Center Service", "Java", "Клиент REST ставок")
+}
+ContainerDb_Ext(db, "Rates Store", "MS SQL", "Нормализованные ставки + версии")
+
+Container(ratesUI, "Rates Publisher UI", "ReactJS", "Минималистичное Web-приложение для загрузки excel-файла со ставками.")
+
+Container_Boundary(rates, "Rates Publisher", "App", "Публикация ставок") {
+    Component(api, "Rates API", "RestController", "POST, GET /rates, кэш")
+    ' Загрузка excel
+    Component(ratesService, "RatesUploaderService", "Service", "Бизнес-логика импорта excel-файла")
+    Component(val, "Validator", "Component", "Правила, диапазоны, дубли")
+    Component(norm, "Normalizer", "Component", "Парсинг, мэппинг в таблицы")
+    Component(ratesRepo, "RatesRepository", "Repository", "Слой БД")
+
+    ' Чтение ставок
+    Component(cache, "Cache", "Repository", "In-memory/Redis")
+    Component(sec, "Security", "Component", "Auth2.0, журналы, аудит")
+
+    ' Рассылка ставок
+    Component(jobApi, "File Exporter API", "Service", "Ручной ретрай рассылки")
+    Component(job, "Scheduler", "Cron", "Плановые/внеплановые рассылки")
+    Component(exp, "File Exporter", "Module", "CSV/XLSX + .sig + .sha256")
+    Component(sender, "File Sender", "Bean", "Генерация и отправка файла на почту")
+
+}
+' Получение ставок
+Rel(callAgent, ccUi, "Просмотр", "HTTPS/OAuth 2.0")
+Rel(ccUi, ccApi, " Получение карточки клиента", "HTTPS/OAuth 2.0")
+Rel(ccApi, api, " GET /rates", "HTTPS/OAuth 2.0")
+Rel(api, cache, "Чтение/инвалидация")
+Rel(cache, ratesRepo, "Получение списка активных ставок")
+Rel(ratesRepo, db, "SELECT/UPSERT")
+
+' Импорт ставок
+Rel(creditMan, ratesUI, "Загрузка excel-файла со ставками в заданном формате", "HTTPS/OAuth 2.0")
+Rel(ratesUI, api, "POST /rates", "HTTPS/OAuth 2.0")
+Rel(api, ratesService, "Загрузка excel-файла со ставками в заданном формате")
+Rel(ratesService, val, "Валидация")
+Rel(ratesService, norm, "Очистка/нормализация")
+Rel(ratesService, ratesRepo, "Сохранение/обновление")
+
+Rel(support, ratesUI, "Ручной запуск рассылки ставок сотрудникам партнерского call-центра", "HTTPS/OAuth 2.0")
+Rel(ratesUI, jobApi, "POST /commands/resend")
+Rel(jobApi, exp, "Генерация и отправка")
+Rel(job, exp, "Генерация и отправка")
+Rel(exp, cache, "Чтение активной версии")
+Rel(exp, sender, "Чтение активной версии")
+Rel(sender, partnerAgent, "Письмо c excel файлом", "Email")
+Rel(api, sec, "JWT/OAuth2")
+Rel(exp, sec, "Подпись/PGP")
+
+
+@enduml

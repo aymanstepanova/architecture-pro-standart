@@ -1,0 +1,36 @@
+@startuml deposits_containers
+!include ../styles/C4_Container.puml
+LAYOUT_WITH_LEGEND()
+
+Person(customer, "Клиент")
+
+Boundary(bank, "Банк «Стандарт»") {
+  Container(ib, "Интернет-банк", "ASP.NET MVC 4.5", "Монолит + модуль Deposits UI/Flow")
+  ContainerDb(ibdb, "База данных Интернет-банка", "MS SQL", "Данные клиентов/сессий/логов")
+
+  Container(depSvc, "Deposit Application Service", "Java Spring Boot", "Приём заявок интернет-банка, статусы, уведомления")
+  ContainerDb(depDb, "Deposits DB", "MS SQL/Oracle", "Заявки на депозиты, статусы, журнал событий")
+
+  Container(cc, "Система call-центра", "React + Spring Boot", "Обработка лидов")
+  ContainerDb(ccdb, "База данных call-центра", "PostgreSQL", "Лиды/коммуникации")
+
+  Container(sms, "СМС-шлюз", "", "OTP, уведомления")
+  Container_Ext(xls, "XLS ставки", "", "Временный источник ставок")
+
+  Container(abs, "АБС", "Delphi client + Oracle/PLSQL", "Ручное оформление депозита (MVP)")
+  ContainerDb(absdb, "База данных АБС", "Oracle", "Учёт счетов/операций")
+}
+Container_Ext(telco, "Телеком-оператор", "", "Доставка СМС")
+
+Rel(customer, ib, "Подаёт заявку, подтверждает OTP")
+Rel(ib, depSvc, "Создать/получить заявку", "HTTPS")
+Rel(depSvc, depDb, "CRUD заявки/статусы", "JDBC/ORM")
+Rel(depSvc, sms, "Запрос OTP/уведомления", "HTTP/SMPP")
+Rel(sms, telco, "Доставка СМС")
+Rel(cc, depSvc, "Сверка статусов (опционально)", "HTTPS")
+Rel(depSvc, abs, "Обмен сведениями/статусами\n(без прямых вызовов из интернет-банка)", "интеграционный слой")
+Rel(abs, absdb, "Хранение")
+Rel(depSvc, xls, "Чтение ставок", "файловый доступ/API")
+Rel(ib, ibdb, "Хранение")
+
+@enduml

@@ -1,0 +1,43 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+LAYOUT_TOP_DOWN()
+
+' Акторы и внешние каналы
+Person_Ext(client, "Клиент", "Подаёт/отслеживает заявку")
+System_Ext(sms, "СМС-шлюз", "Уведомления, OTP")
+System_Ext(bki, "БКИ", "Кредитные истории")
+
+System_Boundary(bank, "Банк «Стандарт»") {
+  System(cas, "Credit Application Service (CAS)", "Приём заявок, статусы, уведомления")
+  System_Ext(scoring, "Скоринг", "Расчёт кредитного рейтинга")
+  System(scoring, "Скоринг", "Онлайн-оценка риска (24/7)")
+  System_Ext(abs, "АБС", "Финансовое оформление кредита")
+  System_Ext(site, "Сайт", "Форма заявки для новых клиентов")
+  System_Ext(ib, "Интернет-банк", "Для действующих клиентов с OTP")
+  System(conveyor, "Кредитный конвейер", "Обработка/решения, 24/7, горизонтальное масштабирование")
+  SystemQueue(kafka, "Event Streaming (Kafka)", "Шина событий: loan.status.changed")
+}
+
+' Онлайн-вход
+Rel(client, site, "Подача заявки", "HTTPS/TLS")
+Rel(client, ib, "Подача заявки + OTP", "HTTPS/TLS")
+Rel(site, cas, "POST /applications", "REST/HTTPS")
+Rel(ib, cas, "POST /applications", "REST/HTTPS")
+
+' Онлайн-интеграции CAS
+Rel(cas, scoring, "Предварительный скоринг", "API")
+Rel(cas, bki, "Запрос кредитной истории", "API")
+
+' Асинхронные статусы из Конвейера
+Rel(conveyor, kafka, "Публикация событий\nloan.status.changed", "Kafka (async)")
+Rel(kafka, cas, "Подписка на события статусов", "Kafka (async)")
+
+' Пакетные обмены остаются
+Rel(cas, conveyor, "Заявки на рассмотрение", "HTTPS")
+Rel(conveyor, abs, "Результаты/одобрения", "Batch 1р/сутки")
+Rel(abs, conveyor, "Финальные статусы/выдача", "Batch 1р/сутки")
+
+' Коммуникация с клиентом
+Rel(cas, sms, "СМС-уведомления\n(создана/статус/выдача)", "API")
+
+@enduml
